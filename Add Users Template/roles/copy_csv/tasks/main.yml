@@ -1,0 +1,6 @@
+---
+- name: copy csv file "{{ csv_users }}"
+  copy:
+    src: "{{ csv_users }}"
+    dest: "{{ csv_users }}"
+
