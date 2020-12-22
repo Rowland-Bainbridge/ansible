@@ -1,0 +1,34 @@
+---
+- name: Read CSV users
+  read_csv:
+     path: "{{ csv_users }}"
+     key: line
+  register: csvuserfile
+  become: false
+
+- name: Add Group
+  group:
+    name: "{{ csvuserfile.dict[csvuserfile.dict | first ].group }}"
+    state: present
+  when: ansible_hostname == csvuserfile.dict[csvuserfile.dict | first ].hostname
+
+- name: Add user
+  user:
+    name: "{{ csvuserfile.dict[csvuserfile.dict | first ].username }}"
+    group: "{{ csvuserfile.dict[csvuserfile.dict | first ].group }}"
+    password: "{{ csvuserfile.dict[csvuserfile.dict | first ].password | password_hash('sha512') }}"
+    comment: "{{ csvuserfile.dict[csvuserfile.dict | first ].gcos }}"
+    create_home: true
+    update_password: on_create
+  when: ansible_hostname ==  csvuserfile.dict[csvuserfile.dict | first ].hostname
+
+- name: Deploy Sudo
+  template:
+    src:  ad_sudo_nopassword.j2
+    dest: /etc/sudoers.d/{{ csvuserfile.dict[csvuserfile.dict | first ].username }}
+    owner : root
+    group: root
+    mode: 0640
+    validate: /usr/sbin/visudo -cf %s
+  when: ansible_hostname == csvuserfile.dict[csvuserfile.dict | first ].hostname
+
