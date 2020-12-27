@@ -1,0 +1,34 @@
+---
+- name: Create local user accounts
+  hosts: localhost
+  become: false
+  vars:
+    csv_hosts: /data/users/hosts.csv
+
+
+  tasks:
+    - name: Read CSV params
+      read_csv:
+        path: "{{ csv_hosts }}"
+        key: hostname
+      register: csvhostfile
+      delegate_to: localhost
+      become: false
+
+    - name: Create CSV hostlist
+      add_host:
+        name: "{{  csvhostfile.dict[item.key].hostname }}"
+        groups: hostlistgroup
+      loop: "{{ csvhostfile.dict|dict2items }}"
+      delegate_to: localhost
+      become: false
+
+- name:  Play to add local users
+  hosts: hostlistgroup
+  become: true
+  gather_facts: false
+
+  roles:
+    - copy_csv
+    - create_local_users
+
